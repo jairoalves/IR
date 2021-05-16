@@ -22,12 +22,9 @@ class BDR(dict):
             'Classificação Setorial': els[4].text.strip(),
             'Site': els[5].text.strip(),
             'Escriturador': escriturador,
+            'Quantidade': '-',
+            'Classe': 'BDR'
         }
-
-        try:
-            dados_bdr['Quantidade'] = els[6].text.strip()
-        except:
-            dados_bdr['Quantidade'] = '-'
 
         super(BDR, self).__init__(dados_bdr)
 
@@ -56,6 +53,7 @@ class AcessoBDRsB3(Edge):
         self.xpath_escriturador = '//*[@id="divContatos"]//td[2]'
         self.css_escriturador = '#divContatos > div > table > tbody > tr > td:nth-child(2)'
         self.seletores_tab_bdr = '#tblBdrs > tbody > tr > td.razaoSocial > a'
+        self.xpath_qtde = '//*[@id="divComposicaoCapitalSocial"]/div/table/tbody/tr/td[2]'
 
     def __init__(self):
         self.config_inicial()
@@ -74,9 +72,12 @@ class AcessoBDRsB3(Edge):
         time.sleep(3)
 
     def aceita_cookies(self):
-        while len(self.find_elements_by_xpath(self.xpath_botao_cookies)) != 1:
-            print('esperando botão de cookies carregar..')
-            time.sleep(1)
+        """Aguarda botão de aceitar cookies e clica nele"""
+
+        WebDriverWait(self, 20).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, self.xpath_botao_cookies)))
+
         botao_cookies = self.find_element_by_xpath(self.xpath_botao_cookies)
         botao_cookies.click()
     
@@ -114,7 +115,8 @@ class AcessoBDRsB3(Edge):
             # salva detalhes do BDR atual na lista completa
             self.lista_detalhes_bdrs.append(bdr_atual)
 
-            if idx >= max:
+            # checa o parâmetro de máximo
+            if idx >= (max - 1):
                 break
     
     def obtem_detalhes_um_bdr(self, nome_bdr, url_bdr):
@@ -144,6 +146,13 @@ class AcessoBDRsB3(Edge):
                 (By.CSS_SELECTOR, self.css_escriturador))).text
         
         bdr_atual['Escriturador'] = escriturador
+    
+        # Pega dados de Quantidade
+        WebDriverWait(self, 20).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, self.xpath_qtde)))
+        quantidade = self.find_element_by_xpath(self.xpath_qtde).text
+        bdr_atual['Quantidade'] = quantidade
 
         return bdr_atual
     
@@ -168,7 +177,7 @@ class AcessoBDRsB3(Edge):
 ###################################################################
 #                            Execução                             #
 ###################################################################
-max_bdrs_a_coletar = 15 # 0 = máximo
+max_bdrs_a_coletar = 0 # 0 = máximo
 
 # Monta planilha de links
 # with AcessoBDRsB3() as edge:
